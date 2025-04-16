@@ -34,3 +34,6 @@ keymap.set({"n", "v"}, "<leader>d", [["_d]])
 keymap.set("n", "Q", "<nop>")
 keymap.set("n", "<leader>sr", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 
+-- better indenting
+keymap.set("v", "<", "<gv")
+keymap.set("v", ">", ">gv")
