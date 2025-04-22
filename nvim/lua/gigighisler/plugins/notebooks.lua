@@ -1,78 +1,103 @@
 return {
-
-	{ -- requires plugins in lua/plugins/treesitter.lua and lua/plugins/lsp.lua
-		-- for complete functionality (language features)
-		"quarto-dev/quarto-nvim",
-		dev = false,
-		opts = {
-			lspFeatures = {
-				enabled = true,
-				chunks = "curly",
-			},
-			codeRunner = {
-				enabled = true,
-				default_method = "slime",
-			},
-		},
-		config = function(_, opts)
-			require("quarto").setup(opts)
-			-- Add runner keymaps
-			local runner = require("quarto.runner")
-			local function insert_new_cell()
-				local row, _ = unpack(vim.api.nvim_win_get_cursor(0))
-				local cell_lines = {
-					"```{python}",
-					"",
-					"```",
-				}
-				vim.api.nvim_buf_set_lines(0, row, row, false, cell_lines)
-				vim.api.nvim_win_set_cursor(0, { row + 1, 0 }) -- jump into the blank line
-			end
-			vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-				pattern = "*.md",
+	{
+		"benlubas/molten-nvim",
+		dependencies = { "3rd/image.nvim" },
+		build = ":UpdateRemotePlugins",
+		init = function()
+			vim.g.molten_auto_open_output = false
+			vim.g.molten_image_provider = "image.nvim"
+			vim.g.molten_wrap_output = true
+			-- vim.g.molten_virt_text_output = true -- show output as virtual text  [oai_citation_attribution:3‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
+			vim.g.molten_virt_lines_off_by_1 = true -- align virt text under the cell  [oai_citation_attribution:4‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
+			vim.g.molten_output_win_max_height = 20
+			vim.g.molten_tick_rate = 200
+		end,
+		config = function()
+			local map = vim.keymap.set
+			-- keymaps for running cells & interacting with molten  [oai_citation_attribution:5‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
+			map("n", "<leader>mi", ":MoltenInit<CR>", { desc = "init Molten kernel", silent = true })
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = { "quarto", "markdown", "ipynb" },
 				callback = function()
-					vim.bo.filetype = "quarto"
+					map("n", "<C-n>", ":MoltenNext<CR>", { desc = "next cell", buffer = true, silent = true })
+					map("n", "<C-p>", ":MoltenPrev<CR>", { desc = "prev cell", buffer = true, silent = true })
 				end,
-				desc = "Treat .md files as quarto for code running",
 			})
+			map("n", "<leader>e", ":MoltenEvaluateOperator<CR>", { desc = "evaluate operator", silent = true })
+			map("n", "<leader>os", ":noautocmd MoltenEnterOutput<CR>", { desc = "open output window", silent = true })
+			map("n", "<leader>rr", ":MoltenReevaluateCell<CR>", { desc = "re‑eval cell", silent = true })
+			map(
+				"v",
+				"<leader>r",
+				":<C‑u>MoltenEvaluateVisual<CR>gv",
+				{ desc = "execute visual selection", silent = true }
+			)
+			map("n", "<leader>oh", ":MoltenHideOutput<CR>", { desc = "close output window", silent = true })
+			map("n", "<leader>md", ":MoltenDelete<CR>", { desc = "delete Molten cell", silent = true })
+			-- if you work with HTML outputs:
+			map("n", "<leader>mx", ":MoltenOpenInBrowser<CR>", { desc = "open output in browser", silent = true })
 
-			vim.keymap.set("n", "<leader>nc", insert_new_cell, { desc = "Insert [n]ew [c]ell", silent = true })
-			vim.keymap.set("n", "<leader>rc", runner.run_cell, { desc = "run cell", silent = true })
-			vim.keymap.set("n", "<leader>ra", runner.run_above, { desc = "run cell and above", silent = true })
-			vim.keymap.set("n", "<leader>rA", runner.run_all, { desc = "run all cells", silent = true })
-			vim.keymap.set("n", "<leader>rl", runner.run_line, { desc = "run line", silent = true })
-			vim.keymap.set("v", "<leader>r", runner.run_range, { desc = "run visual range", silent = true })
-			vim.keymap.set("n", "<leader>RA", function()
-				runner.run_all(true)
-			end, { desc = "run all cells of all languages", silent = true })
-			vim.keymap.set("n", "<leader>nc", insert_new_cell, { desc = "Insert [n]ew [c]ell", silent = true })
-			vim.keymap.set("n", "<leader>rc", runner.run_cell, { desc = "run cell", silent = true })
-			vim.keymap.set("n", "<leader>ra", runner.run_above, { desc = "run cell and above", silent = true })
-			vim.keymap.set("n", "<leader>rA", runner.run_all, { desc = "run all cells", silent = true })
-			vim.keymap.set("n", "<leader>rl", runner.run_line, { desc = "run line", silent = true })
-			vim.keymap.set("v", "<leader>r", runner.run_range, { desc = "run visual range", silent = true })
-			vim.keymap.set("n", "<leader>RA", function()
-				runner.run_all(true)
-			end, { desc = "run all cells of all languages", silent = true })
-
-			-- 🧠 Default notebook template (for .ipynb files)
-			-- Default .ipynb content
+			-- auto‑import/export of notebook outputs  [oai_citation_attribution:6‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
+			local function imb(e)
+				vim.schedule(function()
+					local kernels = vim.fn.MoltenAvailableKernels()
+					local ok, meta = pcall(function()
+						return vim.json.decode(io.open(e.file, "r"):read("a"))["metadata"]
+					end)
+					local kn = ok and meta.kernelspec and meta.kernelspec.name or nil
+					if not kn or not vim.tbl_contains(kernels, kn) then
+						local venv = os.getenv("VIRTUAL_ENV") or os.getenv("CONDA_PREFIX")
+						if venv then
+							kn = venv:match("/.+/(.+)")
+						end
+					end
+					if kn and vim.tbl_contains(kernels, kn) then
+						vim.cmd(("MoltenInit %s"):format(kn))
+					end
+					vim.cmd("MoltenImportOutput")
+				end)
+			end
+			vim.api.nvim_create_autocmd({ "BufAdd" }, {
+				pattern = { "*.ipynb" },
+				callback = imb,
+			})
+			vim.api.nvim_create_autocmd("BufEnter", {
+				pattern = { "*.ipynb" },
+				callback = function(e)
+					if vim.api.nvim_get_vvar("vim_did_enter") ~= 1 then
+						imb(e)
+					end
+				end,
+			})
+			vim.api.nvim_create_autocmd("BufWritePost", {
+				pattern = { "*.ipynb" },
+				callback = function()
+					if require("molten.status").initialized() == "Molten" then
+						vim.cmd("MoltenExportOutput!")
+					end
+				end,
+			})
+			-- Provide a command to create a blank new Python notebook
+			-- note: the metadata is needed for Jupytext to understand how to parse the notebook.
+			-- if you use another language than Python, you should change it in the template.
 			local default_notebook = [[
-{
-  "cells": [
-    {
+  {
+    "cells": [
+     {
       "cell_type": "markdown",
       "metadata": {},
-      "source": [""]
-    }
-  ],
-  "metadata": {
-    "kernelspec": {
+      "source": [
+        ""
+      ]
+     }
+    ],
+    "metadata": {
+     "kernelspec": {
       "display_name": "Python 3",
       "language": "python",
       "name": "python3"
-    },
-    "language_info": {
+     },
+     "language_info": {
       "codemirror_mode": {
         "name": "ipython"
       },
@@ -81,56 +106,81 @@ return {
       "name": "python",
       "nbconvert_exporter": "python",
       "pygments_lexer": "ipython3"
-    }
-  },
-  "nbformat": 4,
-  "nbformat_minor": 5
-}
+     }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5
+  }
 ]]
 
-			-- Create a new notebook and open it in Neovim
 			local function new_notebook(filename)
-				local path = filename:match("%.ipynb$") and filename or (filename .. ".ipynb")
+				local path = filename .. ".ipynb"
 				local file = io.open(path, "w")
 				if file then
 					file:write(default_notebook)
 					file:close()
 					vim.cmd("edit " .. path)
 				else
-					vim.notify("Failed to create notebook: " .. path, vim.log.levels.ERROR)
+					print("Error: Could not open new notebook file for writing.")
 				end
 			end
 
-			-- User command to create a new notebook safely
 			vim.api.nvim_create_user_command("NewNotebook", function(opts)
 				new_notebook(opts.args)
 			end, {
 				nargs = 1,
 				complete = "file",
 			})
-			-- 🧙 Autocmd to auto-populate new *.ipynb files
-			vim.api.nvim_create_autocmd("BufWritePre", {
-				pattern = "*.ipynb",
-				callback = function(args)
-					local file = args.file
-					local stat = vim.loop.fs_stat(file)
-					local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-					local is_empty = (#lines == 1 and lines[1] == "")
-
-					if not stat and is_empty then
-						vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(default_notebook, "\n"))
-						vim.notify("Inserted default notebook metadata into " .. file, vim.log.levels.INFO)
-					end
-				end,
-				desc = "Insert notebook template before saving new .ipynb file",
-			})
 		end,
-		dependencies = {
-			-- for language features in code cells
-			-- configured in lua/plugins/lsp.lua
-			"jmbuhr/otter.nvim",
-		},
 	},
+
+	-- quarto‑nvim + otter.nvim for LSP & notebook‑like editing  [oai_citation_attribution:7‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md) [oai_citation_attribution:8‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
+	{
+		"quarto-dev/quarto-nvim",
+		ft = { "quarto", "markdown" },
+		dependencies = {
+			"jmbuhr/otter.nvim",
+			"nvim-treesitter/nvim-treesitter",
+		},
+		config = function()
+			require("quarto").setup({
+				lspFeatures = {
+					languages = { "r", "python", "rust" },
+					chunks = "all",
+					diagnostics = {
+						enabled = true,
+						triggers = { "BufWritePost" },
+					},
+					completion = { enabled = true },
+				},
+				keymap = {
+					hover = "H",
+					definition = "gd",
+					rename = "<leader>rn",
+					references = "gr",
+					format = "<leader>xf",
+				},
+				codeRunner = {
+					enabled = true,
+					default_method = "molten",
+				},
+			})
+			-- activate quarto in markdown buffers  [oai_citation_attribution:9‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
+			require("quarto").activate()
+			-- quarto runner keymaps  [oai_citation_attribution:10‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
+			local runner = require("quarto.runner")
+			vim.keymap.set("n", "<leader>rc", runner.run_cell, { desc = "run cell", silent = true })
+			vim.keymap.set("n", "<leader>ra", runner.run_above, { desc = "run cell and above", silent = true })
+			vim.keymap.set("n", "<leader>rA", runner.run_all, { desc = "run all cells", silent = true })
+			vim.keymap.set("n", "<leader>rl", runner.run_line, { desc = "run line", silent = true })
+			vim.keymap.set("v", "<leader>r", runner.run_range, { desc = "run visual range", silent = true })
+			vim.keymap.set("n", "<leader>RA", function()
+				runner.run_all(true)
+			end, { desc = "run all languages", silent = true })
+		end,
+	},
+
+	-- jupytext.nvim for ipynb ↔ markdown conversion  [oai_citation_attribution:11‡GitHub](https://github.com/benlubas/molten-nvim/blob/main/docs/Notebook-Setup.md)
 
 	{ -- directly open ipynb files as quarto docuements
 		-- and convert back behind the scenes
@@ -152,135 +202,5 @@ return {
 				},
 			},
 		},
-	},
-
-	{ -- send code from python/r/qmd documets to a terminal or REPL
-		-- like ipython, R, bash
-		"jpalardy/vim-slime",
-		dev = false,
-		init = function()
-			vim.b["quarto_is_python_chunk"] = false
-			Quarto_is_in_python_chunk = function()
-				require("otter.tools.functions").is_otter_language_context("python")
-			end
-
-			vim.cmd([[
-      let g:slime_dispatch_ipython_pause = 100
-      function SlimeOverride_EscapeText_quarto(text)
-      call v:lua.Quarto_is_in_python_chunk()
-      if exists('g:slime_python_ipython') && len(split(a:text,"\n")) > 1 && b:quarto_is_python_chunk && !(exists('b:quarto_is_r_mode') && b:quarto_is_r_mode)
-      return ["%cpaste -q\n", g:slime_dispatch_ipython_pause, a:text, "--", "\n"]
-      else
-      if exists('b:quarto_is_r_mode') && b:quarto_is_r_mode && b:quarto_is_python_chunk
-      return [a:text, "\n"]
-      else
-      return [a:text]
-      end
-      end
-      endfunction
-      ]])
-
-			vim.g.slime_target = "neovim"
-			vim.g.slime_no_mappings = true
-			vim.g.slime_python_ipython = 1
-		end,
-		config = function()
-			vim.g.slime_input_pid = false
-			vim.g.slime_suggest_default = true
-			vim.g.slime_menu_config = false
-			vim.g.slime_neovim_ignore_unlisted = true
-
-			local function mark_terminal()
-				local job_id = vim.b.terminal_job_id
-				vim.print("job_id: " .. job_id)
-			end
-
-			local function set_terminal()
-				vim.fn.call("slime#config", {})
-			end
-			vim.keymap.set("n", "<leader>cm", mark_terminal, { desc = "[m]ark terminal" })
-			vim.keymap.set("n", "<leader>cs", set_terminal, { desc = "[s]et terminal" })
-		end,
-	},
-
-	{ -- paste an image from the clipboard or drag-and-drop
-		"HakonHarnes/img-clip.nvim",
-		event = "BufEnter",
-		ft = { "markdown", "quarto", "latex" },
-		opts = {
-			default = {
-				dir_path = "img",
-			},
-			filetypes = {
-				markdown = {
-					url_encode_path = true,
-					template = "![$CURSOR]($FILE_PATH)",
-					drag_and_drop = {
-						download_images = false,
-					},
-				},
-				quarto = {
-					url_encode_path = true,
-					template = "![$CURSOR]($FILE_PATH)",
-					drag_and_drop = {
-						download_images = false,
-					},
-				},
-			},
-		},
-		config = function(_, opts)
-			require("img-clip").setup(opts)
-			vim.keymap.set("n", "<leader>ii", ":PasteImage<cr>", { desc = "insert [i]mage from clipboard" })
-		end,
-	},
-
-	{ -- preview equations
-		"jbyuki/nabla.nvim",
-		keys = {
-			{ "<leader>qm", ':lua require"nabla".toggle_virt()<cr>', desc = "toggle [m]ath equations" },
-		},
-	},
-
-	{
-		"benlubas/molten-nvim",
-		dev = false,
-		enabled = true,
-		version = "^1.0.0", -- use version <2.0.0 to avoid breaking changes
-		build = ":UpdateRemotePlugins",
-		init = function()
-			vim.g.molten_image_provider = "image.nvim"
-			-- vim.g.molten_output_win_max_height = 20
-			vim.g.molten_auto_open_output = true
-			vim.g.molten_auto_open_html_in_browser = true
-			vim.g.molten_tick_rate = 200
-		end,
-		config = function()
-			local init = function()
-				local quarto_cfg = require("quarto.config").config
-				quarto_cfg.codeRunner.default_method = "molten"
-				vim.cmd([[MoltenInit]])
-			end
-			local deinit = function()
-				local quarto_cfg = require("quarto.config").config
-				quarto_cfg.codeRunner.default_method = "slime"
-				vim.cmd([[MoltenDeinit]])
-			end
-			vim.keymap.set("n", "<leader>mi", init, { silent = true, desc = "Initialize molten" })
-			vim.keymap.set("n", "<leader>md", deinit, { silent = true, desc = "Stop molten" })
-			vim.keymap.set("n", "<leader>mp", ":MoltenImagePopup<CR>", { silent = true, desc = "molten image popup" })
-			vim.keymap.set(
-				"n",
-				"<leader>mb",
-				":MoltenOpenInBrowser<CR>",
-				{ silent = true, desc = "molten open in browser" }
-			)
-			vim.keymap.set("n", "<leader>mh", ":MoltenHideOutput<CR>", { silent = true, desc = "hide output" })
-			vim.keymap.set(
-				"n",
-				"<leader>ms",
-				":noautocmd MoltenEnterOutput<CR>",
-				{ silent = true, desc = "show/enter output" }
-			)
-		end,
 	},
 }

@@ -2,6 +2,11 @@ vim.api.nvim_create_user_command('RevealInFinder', function()
   vim.cmd('!open -R %')
 end, {})
 
+vim.api.nvim_create_user_command('OpenInVSCode', function()
+  local path = vim.fn.expand('%:p:h')
+  vim.cmd('!code --reuse-window ' .. path)
+end, {})
+
 
 function SwitchAvanteModel(model)
 	vim.g.current_avante_model = model

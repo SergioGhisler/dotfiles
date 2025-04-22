@@ -26,21 +26,26 @@ return {
 					"svelte",
 					"lua_ls",
 					"graphql",
-					"emmet_ls",
+					-- "emmet_ls",
 					"prismals",
 					"jinja_lsp",
+					-- Not sure which one to use, pyright needs to much stub config
+					-- "pyright"
 					"pylsp",
 				},
 				automatic_installation = true,
 			})
 			local lspconfig = require("lspconfig")
 
-			-- Pyright config with custom stubs
+			lspconfig.bacon_ls.setup({})
 			lspconfig.pylsp.setup({
 				settings = {
 					pylsp = {
 						plugins = {
-							pycodestyle = { maxLineLength = 100 },
+							pycodestyle = {
+								maxLineLength = 101,
+								enabled = true,
+							},
 							-- mccabe = { enabled = false },
 							-- pyflakes = { enabled = false },
 						},
@@ -61,30 +66,31 @@ return {
 					"black", -- python formatter
 					"pylint",
 					"eslint_d",
+					"ast-grep",
 				},
 			})
 		end,
 	},
-  {
-  "jay-babu/mason-nvim-dap.nvim",
-  dependencies = "mason.nvim",
-  cmd = { "DapInstall", "DapUninstall" },
-  opts = {
-    -- Makes a best effort to setup the various debuggers with
-    -- reasonable debug configurations
-    automatic_installation = true,
+	{
+		"jay-babu/mason-nvim-dap.nvim",
+		dependencies = "mason.nvim",
+		cmd = { "DapInstall", "DapUninstall" },
+		opts = {
+			-- Makes a best effort to setup the various debuggers with
+			-- reasonable debug configurations
+			automatic_installation = true,
 
-    -- You can provide additional configuration to the handlers,
-    -- see mason-nvim-dap README for more information
-    handlers = {},
+			-- You can provide additional configuration to the handlers,
+			-- see mason-nvim-dap README for more information
+			handlers = {},
 
-    -- You'll need to check that you have the required things installed
-    -- online, please don't ask me how to install them :)
-    ensure_installed = {
-      -- Update this to ensure that you have the debuggers for the langs you want
-    },
-  },
-  -- mason-nvim-dap is loaded when nvim-dap loads
-  config = function() end,
-}
+			-- You'll need to check that you have the required things installed
+			-- online, please don't ask me how to install them :)
+			ensure_installed = {
+				-- Update this to ensure that you have the debuggers for the langs you want
+			},
+		},
+		-- mason-nvim-dap is loaded when nvim-dap loads
+		config = function() end,
+	},
 }

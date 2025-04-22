@@ -94,6 +94,18 @@ return {
 				return { fg = "#3EFFDC" } -- green otherwise
 			end,
 		}
+		-- Macro recording status component
+		local macro_recording = {
+			function()
+				local rec = vim.fn.reg_recording()
+				if rec == "" then
+					return ""
+				else
+					return "  Recording @" .. rec
+				end
+			end,
+			color = { fg = "#FFDA7B", gui = "bold" },
+		}
 		-- Setup lualine with Copilot status in lualine_x
 		lualine.setup({
 			options = {
@@ -111,6 +123,7 @@ return {
 				},
 				lualine_x = {
 					"searchcount",
+          macro_recording,
 					copilot_status, -- <- Injected Copilot status here
 				},
 				lualine_y = { "filetype", "progress", "diff" },
