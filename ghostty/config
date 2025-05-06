@@ -1,5 +1,6 @@
 keybind = cmd+j=text:\x1d
 keybind = cmd+a=ignore
+keybind = cmd+d=ignore
 keybind = cmd+s=text:\x1b:w\x0d
 
 macos-titlebar-style=hidden
