@@ -61,7 +61,7 @@ on-focus-changed = [
 [gaps]
 #outer.bottom numbers have to match presentation.sh variables. built-in retina display is excluded from presentation mode, so this only works on external monitors.
 outer.bottom =        [{monitor.'^built-in retina display$' = 0 }, 20]
-outer.top =        [{monitor.'^built-in retina display$' = 0 }, 40]
+outer.top =        [{monitor.'^built-in retina display$' = 0 }, 20]
 outer.left =       [{monitor.'^built-in retina display$' = 0 }, 20]
 outer.right =      [{monitor.'^built-in retina display$' = 0 }, 20]
 inner.horizontal = [{monitor.'^built-in retina display$' = 0 }, 20]

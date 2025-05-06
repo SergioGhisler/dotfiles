@@ -7,7 +7,7 @@ return{
     bigfile = { enabled = true },
     dashboard = { enabled = true },
     explorer = {
-      enabled = true,
+      enabled = false,
       layout = { cycle = false },
     },
     input = { enabled = true },
@@ -17,6 +17,7 @@ return{
     },
     picker = {
       enabled = true,
+      layout = { cycle = false },
       win = {
         input = {
           keys = {
@@ -31,6 +32,8 @@ return{
       sources = {
         explorer={
           layout = { layout = { position = "right" } },
+              replace_netrw = true,
+
         },
      },
     },
