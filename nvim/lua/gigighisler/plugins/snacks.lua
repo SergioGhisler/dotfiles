@@ -17,25 +17,40 @@ return{
     },
     picker = {
       enabled = true,
-      layout = { cycle = false },
+      layout = "default",
       win = {
         input = {
           keys = {
-            ["<C-h>"] = { "toggle_hidden", mode = { "i", "n" } },
-            --this two lines do the same, in nvim <tab> is mapped to <C-i>
-            ["<C-i>"] = { "toggle_ignored", mode = { "i", "n" } },
-            ["<Tab>"] = { "toggle_ignored", mode = { "i", "n" } },
-
+            ["<Tab>"] = { "toggle_hidden_and_ignored", mode = { "i", "n" } },
           },
         },
+      },
+      actions = {
+        toggle_hidden_and_ignored = function(picker)
+          picker:action("toggle_hidden")
+          picker:action("toggle_ignored")
+        end,
       },
       sources = {
         explorer={
           layout = { layout = { position = "right" } },
-              replace_netrw = true,
+          replace_netrw = true,
 
+          win = {
+            list = {
+              keys = {
+                ["<Tab>"] = { "toggle_hidden_and_ignored", mode = { "n" } },
+              },
+            },
+          },
+          actions = {
+            toggle_hidden_and_ignored = function(picker)
+              picker:action("toggle_hidden")
+              picker:action("toggle_ignored")
+            end,
+          },
         },
-     },
+      },
     },
     quickfile = { enabled = true },
     scope = { enabled = true },
