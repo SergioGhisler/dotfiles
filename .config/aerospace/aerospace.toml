@@ -13,7 +13,7 @@ after-login-command = []
 # 'after-startup-command' is run after 'after-login-command'
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-  'exec-and-forget borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0',
+  'exec-and-forget borders style=uniform active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0',
 ]
 
 
@@ -64,12 +64,12 @@ on-focus-changed = [
 #                 See: https://nikitabobko.github.io/AeroSpace/guide#assign-workspaces-to-monitors
 [gaps]
 #outer.bottom numbers have to match presentation.sh variables. built-in retina display is excluded from presentation mode, so this only works on external monitors.
-outer.bottom =        [{monitor.'^built-in retina display$' = 0 }, 20]
-outer.top =        [{monitor.'^built-in retina display$' = 0 }, 20]
-outer.left =       [{monitor.'^built-in retina display$' = 0 }, 20]
-outer.right =      [{monitor.'^built-in retina display$' = 0 }, 20]
-inner.horizontal = [{monitor.'^built-in retina display$' = 0 }, 20]
-inner.vertical =   [{monitor.'^built-in retina display$' = 0 }, 20]
+outer.bottom =        [{monitor.'^built-in retina display$' = 0 }, {monitor.'^Duet' = 0 }, 20]
+outer.top =        [{monitor.'^built-in retina display$' = 0 }, {monitor.'^Duet' = 0 }, 20]
+outer.left =       [{monitor.'^built-in retina display$' = 0 }, {monitor.'^Duet' = 0 }, 20]
+outer.right =      [{monitor.'^built-in retina display$' = 0 }, {monitor.'^Duet' = 0 }, 20]
+inner.horizontal = [{monitor.'^built-in retina display$' = 0 }, {monitor.'^Duet' = 0 }, 20]
+inner.vertical =   [{monitor.'^built-in retina display$' = 0 }, {monitor.'^Duet' = 0 }, 20]
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.iaao/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented
@@ -189,6 +189,11 @@ run = 'move-node-to-workspace 2'
 
 [[on-window-detected]]
 if.app-id = 'app.zen-browser.zen'
+run = 'move-node-to-workspace 2'
+if.during-aerospace-startup = true
+
+[[on-window-detected]]
+if.app-id = 'company.thebrowser.Browser'
 run = 'move-node-to-workspace 2'
 if.during-aerospace-startup = true
 

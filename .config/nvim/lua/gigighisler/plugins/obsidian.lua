@@ -45,5 +45,7 @@ return {
 		ui = {
 			enable = false,
 		},
+    vim.keymap.set("n", "<leader>on", ":ObsidianTemplate note<cr> :lua vim.cmd([[1,/^\\S/s/^\\n\\{1,}//]])<cr>")
+
 	},
 }

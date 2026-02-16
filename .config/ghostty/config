@@ -1,7 +1,10 @@
+## move between window 1 and 2
 keybind = cmd+j=text:\x1d
 keybind = cmd+a=ignore
 keybind = cmd+d=ignore
+## command s to save nvim file
 keybind = cmd+s=text:\x1b:w\x0d
-
+## comand f to control f
+keybind = cmd+f=text:\x06
 macos-titlebar-style=hidden
 ## background-opacity=0.9

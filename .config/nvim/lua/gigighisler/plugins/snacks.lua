@@ -1,3 +1,26 @@
+---@module "snacks"
+---@module "lazy"
+
+local function is_fish_shell() return vim.o.shell:match('fish') ~= nil end
+
+local function get_lazygit_os_config()
+  if is_fish_shell() then
+    return {
+      edit = 'begin; if test -z "$NVIM"; nvim -- {{filename}}; else; nvim --server "$NVIM" --remote-send "q"; nvim --server "$NVIM" --remote {{filename}}; end; end',
+      editAtLine = 'begin; if test -z "$NVIM"; nvim +{{line}} -- {{filename}}; else; nvim --server "$NVIM" --remote-send "q"; nvim --server "$NVIM" --remote {{filename}}; nvim --server "$NVIM" --remote-send ":{{line}}<CR>"; end; end',
+      editAtLineAndWait = 'nvim +{{line}} {{filename}}',
+      openDirInEditor = 'begin; if test -z "$NVIM"; nvim -- {{dir}}; else; nvim --server "$NVIM" --remote-send "q"; nvim --server "$NVIM" --remote {{dir}}; end; end',
+    }
+  end
+  return {
+    edit = '[ -z "$NVIM" ] && (nvim -- {{filename}}) || (nvim --server "$NVIM" --remote-send "q" && nvim --server "$NVIM" --remote {{filename}})',
+    editAtLine = '[ -z "$NVIM" ] && (nvim +{{line}} -- {{filename}}) || (nvim --server "$NVIM" --remote-send "q" &&  nvim --server "$NVIM" --remote {{filename}} && nvim --server "$NVIM" --remote-send ":{{line}}<CR>")',
+    editAtLineAndWait = 'nvim +{{line}} {{filename}}',
+    openDirInEditor = '[ -z "$NVIM" ] && (nvim -- {{dir}}) || (nvim --server "$NVIM" --remote-send "q" && nvim --server "$NVIM" --remote {{dir}})',
+  }
+end
+
+---@type LazySpec
 return{
   "folke/snacks.nvim",
   priority = 1000,
@@ -88,6 +111,17 @@ return{
     scroll = { enabled = false },
     statuscolumn = { enabled = true },
     words = { enabled = true },
+    lazygit = {
+      enabled = true,
+      config = {
+        os = get_lazygit_os_config(),
+        git ={
+          paging ={
+            pager = "delta --dark --paging=never -s"
+          }
+        }
+      }
+    },
     styles = {
       notification = {
         -- wo = { wrap = true } -- Wrap notifications

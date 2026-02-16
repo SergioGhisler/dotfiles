@@ -8,16 +8,17 @@ IFS=$'\n' all_wins=$(aerospace list-windows --all --format '%{window-id}|%{app-n
 IFS=$'\n' all_ws=$(aerospace list-workspaces --all --format '%{workspace}|%{monitor-id}')
 
 # Array of possible window titles
-pip_titles=("Huddle" "Picture-in-picture" "Picture-in-Picture" "Picture in Picture" "Picture in picture" "about:blank" "GhosttyNotes" "Calendar" "Finder")
+# pip_titles=("Huddle" "Picture-in-picture" "Picture-in-Picture" "Picture in Picture" "Picture in picture" "about:blank" "GhosttyNotes" "Calendar\|Calendar" "Finder")
 
+pip_titles=("Picture-in-picture" "Picture-in-Picture" "Picture in Picture" "Picture in picture" "about:blank" "GhosttyNotes" "Finder")
 # Function to find matching PIP windows
 find_pip_windows() {
   local titles=("$@")
   local result=""
   for title in "${titles[@]}"; do
     # Add -i for case-insensitive, and escape the title for safety if needed
-    local matches=$(printf '%s\n' "$all_wins" | rg -i "$title")
-    local matches=$(printf '%s\n' "$all_wins" | rg -i "$title" | rg -vi 'zen')
+    # local matches=$(printf '%s\n' "$all_wins" | rg -i "$title")
+    local matches=$(printf '%s\n' "$all_wins" | rg -i "$title" | rg -vi 'arc')
     result="$result"$'\n'"$matches"
   done
   echo "$result" | sed '/^\s*$/d' # Remove empty lines

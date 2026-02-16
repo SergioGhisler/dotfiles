@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
 tmux_auto() {
+  # If we are in filesystem root, just run normal tmux
+  if [ "$PWD" = "/" ]; then
+    command tmux "$@"
+    return
+  fi
   session_name=$(basename "$PWD")
 
   if tmux has-session -t="$session_name" 2>/dev/null; then
