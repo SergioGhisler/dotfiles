@@ -164,14 +164,49 @@ select_base_branch() {
   fi
 }
 
+run_apply_with_spinner() {
+  local name="$1"
+  local pane_path="$2"
+  local base_branch="${3:-}"
+  local pid i frame
+  local frames=("■□□□□" "■■□□□" "■■■□□" "■■■■□" "■■■■■" "□■■■■" "□□■■■" "□□□■■" "□□□□■")
+  local green reset
+
+  green='\033[32m'
+  reset='\033[0m'
+
+  "${BASH_SOURCE[0]}" --apply "$name" "$pane_path" "$base_branch" >/dev/null 2>&1 &
+  pid=$!
+  i=0
+
+  while kill -0 "$pid" 2>/dev/null; do
+    frame="${frames[i%${#frames[@]}]}"
+    printf "\rProcessing worktree '%s'... ${green}[%s]${reset}" "$name" "$frame"
+    sleep 0.1
+    i=$((i + 1))
+  done
+
+  wait "$pid"
+  printf "\r\033[K"
+  return $?
+}
+
 main() {
   local input_name name pane_path repo_root repo_name worktrees_root worktree_path window_name
   local worktree_dir_name candidate_path path_branch path_try
   local existing_branch_worktree
   local git_err current_branch base_branch
+  local mode
 
+  mode="direct"
   if [[ "${1:-}" == "--prompt" ]]; then
+    mode="prompt"
     pane_path="$(tmux display-message -p '#{pane_current_path}')"
+  elif [[ "${1:-}" == "--apply" ]]; then
+    mode="apply"
+    input_name="${2:-}"
+    pane_path="${3:-$(tmux display-message -p '#{pane_current_path}')}"
+    base_branch="${4:-}"
   else
     input_name="${1:-}"
     pane_path="${2:-$(tmux display-message -p '#{pane_current_path}')}"
@@ -184,7 +219,7 @@ main() {
 
   current_branch="$(current_branch_name "$repo_root")"
 
-  if [[ "${1:-}" == "--prompt" ]]; then
+  if [[ "$mode" == "prompt" ]]; then
     input_name="$(prompt_target_branch_name "$repo_root")"
   fi
 
@@ -204,6 +239,27 @@ main() {
   if ! git check-ref-format --branch "$name" >/dev/null 2>&1; then
     tmux display-message "Invalid name: '$input_name'"
     exit 1
+  fi
+
+  if [[ "$mode" == "prompt" ]]; then
+    if branch_exists "$repo_root" "$name"; then
+      base_branch=""
+    else
+      base_branch="$(select_base_branch "$repo_root" "$current_branch")"
+      base_branch="$(sanitize_branch_name "$base_branch")"
+      if [[ -z "$base_branch" ]] || ! git check-ref-format --branch "$base_branch" >/dev/null 2>&1; then
+        tmux display-message "Invalid base branch: '$base_branch'"
+        exit 1
+      fi
+
+      if ! branch_exists "$repo_root" "$base_branch"; then
+        tmux display-message "Base branch not found: $base_branch"
+        exit 1
+      fi
+    fi
+
+    run_apply_with_spinner "$name" "$pane_path" "$base_branch"
+    exit $?
   fi
 
   repo_name="$(basename "$repo_root")"
@@ -257,9 +313,8 @@ main() {
         exit 1
       fi
     else
-      base_branch="$current_branch"
-      if [[ "${1:-}" == "--prompt" ]]; then
-        base_branch="$(select_base_branch "$repo_root" "$current_branch")"
+      if [[ -z "$base_branch" ]]; then
+        base_branch="$current_branch"
       fi
 
       base_branch="$(sanitize_branch_name "$base_branch")"
