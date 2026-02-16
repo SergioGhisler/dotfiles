@@ -24,7 +24,7 @@ return {
           auto_trigger = true,
           hide_during_completion = vim.g.ai_cmp,
           keymap = {
-            accept = "<Tab>",
+            accept = false,
             next = "<M-]>",
             prev = "<M-[>",
           },
