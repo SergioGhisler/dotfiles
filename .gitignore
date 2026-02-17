@@ -5,4 +5,4 @@ GNS3
 tmux/plugins
 stubs
 configstore
-
+.config/tmux/resurrect
